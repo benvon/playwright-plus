@@ -11,7 +11,7 @@ fileExistenceTests:
     path: '/ms-playwright'
     shouldExist: true
   - name: 'Global npm packages directory'
-    path: '/usr/local/lib/node_modules'
+    path: '/usr/lib/node_modules'
     shouldExist: true
 
 commandTests:
