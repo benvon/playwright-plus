@@ -8,17 +8,38 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sundays
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Set up BuildKit Docker container builder
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.8.0
+
+      # Build image locally for scanning
+      - name: Build Docker image
+        uses: docker/build-push-action@v6.12.0
+        with:
+          context: .
+          load: true  # Load the image locally instead of pushing
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -30,16 +51,18 @@ jobs:
         with:
           dockerfile: Dockerfile
 
+      - name: Install Dockle
+        run: |
+          VERSION=$(curl --silent "https://api.github.com/repos/goodwithtech/dockle/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          curl -L -o dockle.deb "https://github.com/goodwithtech/dockle/releases/download/v${VERSION}/dockle_${VERSION}_Linux-64bit.deb"
+          sudo dpkg -i dockle.deb
+
       - name: Run Dockle
-        uses: goodwithtech/dockle-action@main
-        with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: 'list'
-          exit-code: '1'
-          ignore: 'CIS-DI-0001'
+        run: |
+          dockle --format json --exit-code 1 --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
 
       - name: Container Structure Test
         uses: plexsystems/container-structure-test-action@v0.3.0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
           config: .container-structure-test.yaml 
