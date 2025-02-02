@@ -1,9 +1,12 @@
 name: Sonar
 
 on:
-    pull_request:
-        branches: [ "main" ]
-
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      description:
+        description: 'Reason for running the analysis'
+        required: false
+        type: string
 
 jobs:
   build:
