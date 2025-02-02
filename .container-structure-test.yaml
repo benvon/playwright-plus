@@ -2,13 +2,16 @@ schemaVersion: '2.0.0'
 
 fileExistenceTests:
   - name: 'Node.js Executable'
-    path: '/usr/local/bin/node'
+    path: '/usr/bin/node'
     shouldExist: true
   - name: 'NPM Executable'
-    path: '/usr/local/bin/npm'
+    path: '/usr/bin/npm'
     shouldExist: true
   - name: 'Playwright Directory'
     path: '/ms-playwright'
+    shouldExist: true
+  - name: 'Global npm packages directory'
+    path: '/usr/local/lib/node_modules'
     shouldExist: true
 
 commandTests:
@@ -21,14 +24,20 @@ commandTests:
     args: ['--version']
     expectedOutput: ['.*']
   - name: 'Playwright CLI'
-    command: 'playwright'
+    command: 'npx'
+    args: ['playwright', '--version']
+    expectedOutput: ['Version .*']
+  - name: 'Jest Availability'
+    command: 'jest'
+    args: ['--version']
+    expectedOutput: ['.*']
+  - name: 'TypeScript Availability'
+    command: 'tsc'
     args: ['--version']
     expectedOutput: ['Version .*']
 
 metadataTest:
-  envVars:
-    - key: 'NODE_VERSION'
-      value: '.*'
+  envVars: []
   exposedPorts: []
   volumes: []
   workdir: '' 
