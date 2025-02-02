@@ -26,7 +26,7 @@ commandTests:
     expectedOutput: ['Version .*']
 
 metadataTest:
-  env:
+  envVars:
     - key: 'NODE_VERSION'
       value: '.*'
   exposedPorts: []
