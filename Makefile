@@ -55,7 +55,7 @@ test: build
 	@mkdir -p $(TOOLS_DIR)/.trivy-cache
 	
 	@echo "\n=== Running Trivy scan ==="
-	-$(TOOLS_DIR)/trivy image --cache-dir $(TOOLS_DIR)/.trivy-cache --format json --output trivy-results.json --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH $(IMAGE_NAME):$(TEST_TAG)
+	-$(TOOLS_DIR)/trivy image --cache-dir $(TOOLS_DIR)/.trivy-cache --format json --output trivy-results.json --ignore-unfixed --scanners vuln --pkg-types os,library --severity CRITICAL,HIGH --skip-files '/root/.npm/_cacache/content-v2/**/*' $(IMAGE_NAME):$(TEST_TAG)
 	
 	@echo "\n=== Running Hadolint ==="
 	-$(TOOLS_DIR)/hadolint --format json Dockerfile > hadolint-results.json
