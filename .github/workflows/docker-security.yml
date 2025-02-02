@@ -28,7 +28,7 @@ jobs:
 
       # Build image locally for scanning
       - name: Build Docker image
-        uses: docker/build-push-action@v6.12.0
+        uses: docker/build-push-action@v6.13.0
         with:
           context: .
           load: true  # Load the image locally instead of pushing
