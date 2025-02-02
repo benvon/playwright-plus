@@ -45,9 +45,15 @@ jobs:
           format: 'json'
           output: 'trivy-results.json'
           ignore-unfixed: true
-          vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           skip-dirs: '/root/.npm/_cacache/content-v2'
+          trivy-config: |
+            scan:
+              scanners:
+                - vuln
+              pkg-types:
+                - os
+                - library
 
       - name: Dockerfile lint
         uses: hadolint/hadolint-action@v3.1.0

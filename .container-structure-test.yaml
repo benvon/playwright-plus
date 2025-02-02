@@ -35,6 +35,9 @@ commandTests:
     command: 'tsc'
     args: ['--version']
     expectedOutput: ['Version .*']
+  - name: 'PNPM Availability'
+    command: 'pnpm'
+    args: ['--version']
 
 metadataTest:
   envVars: []
