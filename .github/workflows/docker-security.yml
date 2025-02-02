@@ -31,7 +31,7 @@ jobs:
           dockerfile: Dockerfile
 
       - name: Run Dockle
-        uses: goodwithtech/dockle-action@v1
+        uses: goodwithtech/dockle-action@main
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           format: 'list'
