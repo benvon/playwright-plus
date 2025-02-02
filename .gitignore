@@ -131,3 +131,15 @@ dist
 
 # Container Structure Test binary
 container-structure-test-linux-amd64
+
+# Security test results
+trivy-results.json
+hadolint-results.json
+dockle-results.json
+
+# Security tools and results
+.tools/
+.trivy-cache/
+trivy-results.json
+hadolint-results.json
+dockle-results.json
