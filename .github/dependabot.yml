@@ -1,0 +1,52 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Ignore patch updates for node packages as we handle them separately
+      - dependency-name: "node"
+        update-types: ["version-update:semver-patch"]
+    labels:
+      - "docker"
+      - "dependencies"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # This will track packages in package.json if you create one
+    allow:
+      # Allow both direct and indirect updates for all packages
+      - dependency-type: "all"
+    labels:
+      - "npm"
+      - "dependencies"
+    # Create a group of npm dependencies to be updated together
+    groups:
+      npm-packages:
+        patterns:
+          - "*"
+    # Include version updates for npm packages in commit messages
+    commit-message:
+      prefix: "npm"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "github-actions"
+      - "dependencies"
+    # Group all github actions updates into a single PR
+    groups:
+      github-actions:
+        patterns:
+          - "*"
