@@ -74,7 +74,7 @@ jobs:
         id: dockle
         continue-on-error: true
         run: |
-          dockle --format json --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
+          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
 
       - name: Container Structure Test
         id: container_test

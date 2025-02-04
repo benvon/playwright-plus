@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.50.1-noble
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG PLAYWRIGHT_VERSION=1.50.1
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
@@ -21,7 +22,7 @@ WORKDIR /tmp
 
 # hadolint ignore=DL3016
 RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
-  npx -y playwright@1.50.1 install --with-deps && \
+  npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps && \
   rm package.json
 
 
