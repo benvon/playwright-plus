@@ -1,5 +1,10 @@
 FROM mcr.microsoft.com/playwright:v1.50.1-noble
 
+ARG DEBIAN_FRONTEND=noninteractive
+
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
     jq=1.7.1-3build1 \
@@ -15,7 +20,8 @@ COPY package.json /tmp/package.json
 WORKDIR /tmp
 
 # hadolint ignore=DL3016
-RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json)
+RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
+  npx -y playwright@1.50.1 install --with-deps && \
+  rm package.json
 
-RUN rm package.json
 
