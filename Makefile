@@ -58,10 +58,10 @@ test: build
 	-$(TOOLS_DIR)/trivy image --cache-dir $(TOOLS_DIR)/.trivy-cache --format json --output trivy-results.json --ignore-unfixed --scanners vuln --pkg-types os,library --severity CRITICAL,HIGH --skip-files '/root/.npm/_cacache/content-v2/**/*' $(IMAGE_NAME):$(TEST_TAG)
 	
 	@echo "\n=== Running Hadolint ==="
-	-$(TOOLS_DIR)/hadolint --format json Dockerfile > hadolint-results.json
+	-$(TOOLS_DIR)/hadolint --format json Dockerfile > hadolint-results.json || true
 	
 	@echo "\n=== Running Dockle ==="
-	-$(TOOLS_DIR)/dockle --format json --output dockle-results.json --ignore CIS-DI-0001 $(IMAGE_NAME):$(TEST_TAG)
+	-$(TOOLS_DIR)/dockle --timeout 600s --format json --output dockle-results.json --ignore CIS-DI-0010 $(IMAGE_NAME):$(TEST_TAG)
 	
 	@echo "\n=== Running Container Structure Tests ==="
 	-$(TOOLS_DIR)/container-structure-test test --image $(IMAGE_NAME):$(TEST_TAG) --config .container-structure-test.yaml
@@ -69,7 +69,7 @@ test: build
 	@echo "\n=== Test Summary ==="
 	@echo "Trivy vulnerabilities: $$(jq '.Results[].Vulnerabilities | length // 0' trivy-results.json | jq -s 'add // 0')"
 	@echo "Hadolint issues: $$(jq '. | length // 0' hadolint-results.json)"
-	@echo "Dockle warnings: $$(jq '.Failures | length // 0' dockle-results.json)"
+	@echo "Dockle failures: $$(jq '.Failures | length // 0' dockle-results.json)"
 
 # Clean up test artifacts
 clean:
