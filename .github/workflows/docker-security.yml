@@ -24,7 +24,7 @@ jobs:
 
       # Set up BuildKit Docker container builder
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.8.0
+        uses: docker/setup-buildx-action@v3.9.0
 
       # Build image locally for scanning
       - name: Build Docker image
