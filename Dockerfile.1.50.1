@@ -8,6 +8,7 @@ ENV LC_ALL=C.UTF-8
 
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
+    default-jdk \
     jq=1.7.1-3build1 \
     && \
   rm -rf /var/lib/apt/lists/* 

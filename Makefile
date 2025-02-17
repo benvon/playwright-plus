@@ -1,8 +1,11 @@
-.PHONY: test install-deps clean build
+# Define all Dockerfiles found in the repository root
+DOCKERFILES := $(wildcard Dockerfile.*)
 
 # Variables
 IMAGE_NAME = playwright-plus
 TEST_TAG = test-security
+# Extract tags from Dockerfile names: e.g., Dockerfile.foo => foo
+IMAGE_TAGS := $(patsubst Dockerfile.%,%,$(notdir $(DOCKERFILES)))
 CONTAINER_TEST_VERSION = latest
 HADOLINT_VERSION = v2.12.0
 TOOLS_DIR = .tools
@@ -47,35 +50,45 @@ install-deps:
 # Build the Docker image
 build:
 	@echo "Building Docker image..."
-	docker build -t $(IMAGE_NAME):$(TEST_TAG) .
+	@for file in $(DOCKERFILES); do \
+		tag=$$(basename $$file | sed 's/^Dockerfile\.//'); \
+		full_tag="$(IMAGE_NAME):$$tag"; \
+		echo "Building image $$full_tag using $$file"; \
+		docker build -f $$file -t $$full_tag .; \
+	done
 
-# Run all security tests
-test: build
-	@echo "Running security tests..."
-	@mkdir -p $(TOOLS_DIR)/.trivy-cache
-	
-	@echo "\n=== Running Trivy scan ==="
-	-$(TOOLS_DIR)/trivy image --cache-dir $(TOOLS_DIR)/.trivy-cache --format json --output trivy-results.json --ignore-unfixed --scanners vuln --pkg-types os,library --severity CRITICAL,HIGH --skip-files '/root/.npm/_cacache/content-v2/**/*' $(IMAGE_NAME):$(TEST_TAG)
-	
-	@echo "\n=== Running Hadolint ==="
-	-$(TOOLS_DIR)/hadolint --format json Dockerfile > hadolint-results.json || true
-	
-	@echo "\n=== Running Dockle ==="
-	-$(TOOLS_DIR)/dockle --timeout 600s --format json --output dockle-results.json --ignore CIS-DI-0010 $(IMAGE_NAME):$(TEST_TAG)
-	
-	@echo "\n=== Running Container Structure Tests ==="
-	-$(TOOLS_DIR)/container-structure-test test --image $(IMAGE_NAME):$(TEST_TAG) --config .container-structure-test.yaml
-	
-	@echo "\n=== Test Summary ==="
-	@echo "Trivy vulnerabilities: $$(jq '.Results[].Vulnerabilities | length // 0' trivy-results.json | jq -s 'add // 0')"
-	@echo "Hadolint issues: $$(jq '. | length // 0' hadolint-results.json)"
-	@echo "Dockle failures: $$(jq '.Failures | length // 0' dockle-results.json)"
+# Test each Docker image: replace the test command as needed
+test: install-deps build
+	@echo "Testing Docker images from found Dockerfile.* files..."
+	@for file in $(DOCKERFILES); do \
+		tag=$$(basename $$file | sed 's/^Dockerfile\.//'); \
+		full_tag="$(IMAGE_NAME):$$tag"; \
+		echo "Testing image $$full_tag"; \
+		echo "Running security tests..."; \
+		mkdir -p $(TOOLS_DIR)/.trivy-cache; \
+		echo "\n=== Running Trivy scan ==="; \
+		$(TOOLS_DIR)/trivy image --cache-dir $(TOOLS_DIR)/.trivy-cache --format json --output trivy-results.$$tag.json --ignore-unfixed --scanners vuln --pkg-types os,library --severity CRITICAL,HIGH --skip-files '/root/.npm/_cacache/content-v2/**/*' $$full_tag; \
+		echo "\n=== Running Hadolint ==="; \
+		$(TOOLS_DIR)/hadolint --format json Dockerfile.$$tag > hadolint-results.$$tag.json || true; \
+		echo "\n=== Running Dockle ==="; \
+		$(TOOLS_DIR)/dockle --timeout 600s --format json --output dockle-results.$$tag.json --ignore CIS-DI-0010 $$full_tag; \
+		echo "\n=== Running Container Structure Tests ==="; \
+		$(TOOLS_DIR)/container-structure-test test --image $$full_tag --config .container-structure-test.yaml; \
+		echo "\n=== Test Summary ==="; \
+		echo "Trivy vulnerabilities: $$(jq '.Results[].Vulnerabilities | length // 0' trivy-results.$$tag.json | jq -s 'add // 0')"; \
+		echo "Hadolint issues: $$(jq '. | length // 0' hadolint-results.$$tag.json)"; \
+		echo "Dockle failures: $$(jq '.Failures | length // 0' dockle-results.$$tag.json)"; \
+	done
 
 # Clean up test artifacts
 clean:
 	@echo "Cleaning up..."
 	rm -rf $(TOOLS_DIR)
-	rm -f trivy-results.json
-	rm -f hadolint-results.json
-	rm -f dockle-results.json
-	docker rmi $(IMAGE_NAME):$(TEST_TAG) || true 
+	rm -f trivy-results.*.json
+	rm -f hadolint-results.*.json
+	rm -f dockle-results.*.json
+	@for file in $(DOCKERFILES); do \
+		tag=$$(basename $$file | sed 's/^Dockerfile\.//'); \
+		full_tag="$(IMAGE_NAME):$$tag"; \
+		docker rmi $$full_tag || true; \
+	done

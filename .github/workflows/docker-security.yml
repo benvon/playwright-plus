@@ -13,11 +13,43 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate matrix from Dockerfiles
+        id: set-matrix
+        run: |
+          # Find all Dockerfile.* files in the repository root
+          files=$(find . -maxdepth 1 -name 'Dockerfile.*' -type f)
+          echo "Found Dockerfiles:"
+          echo "$files"
+          matrix="{\"include\":["
+          sep=""
+          for file in $files; do
+            # Extract the suffix after "Dockerfile."
+            tag=$(basename "$file")
+            tag=${tag#Dockerfile.}
+            # If no tag found, use a default value
+            [ -z "$tag" ] && tag="default"
+            # Remove any leading "./"
+            dockerfile=$(echo "$file" | sed 's|^\./||')
+            matrix="$matrix$sep{\"dockerfile\":\"$dockerfile\",\"image_tag\":\"$tag\"}"
+            sep=","
+          done
+          matrix="$matrix]}"
+          echo "Generated matrix: $matrix"
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   security-scan:
+    needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        playwright: [ "1.50.1", "1.49.1" ]
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     permissions:
       contents: write
       packages: write
@@ -34,9 +66,9 @@ jobs:
         uses: docker/build-push-action@v6.13.0
         with:
           context: .
-          file: Dockerfile-pw-${{ matrix.playwright }}
+          file: ${{ matrix.dockerfile }}
           load: true  # Load the image locally instead of pushing
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test-security
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -45,7 +77,7 @@ jobs:
         id: trivy
         continue-on-error: true
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
           format: 'json'
           output: 'trivy-results.json'
           ignore-unfixed: true
@@ -78,52 +110,12 @@ jobs:
         id: dockle
         continue-on-error: true
         run: |
-          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
 
       - name: Container Structure Test
         id: container_test
         continue-on-error: true
         uses: plexsystems/container-structure-test-action@v0.3.0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
           config: .container-structure-test.yaml
-
-      # - name: Update README with security results
-      #   if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-      #   run: |
-      #     # Get current date
-      #     DATE=$(date '+%Y-%m-%d')
-          
-      #     # Process results and create summary
-      #     TRIVY_VULNS=$(jq '.Results[].Vulnerabilities | length // 0' trivy-results.json | jq -s 'add // 0')
-      #     HADOLINT_ISSUES=$(jq '. | length // 0' hadolint-results.json)
-      #     DOCKLE_ISSUES=$(jq '.Failures | length // 0' dockle-results.json)
-          
-      #     # Create security section
-      #     SECURITY_SECTION="## Security Scan Results\n\nLast updated: ${DATE}\n\n"
-      #     SECURITY_SECTION+="| Tool | Status | Issues |\n"
-      #     SECURITY_SECTION+="| ---- | ------ | ------ |\n"
-      #     SECURITY_SECTION+="| Trivy | ${{ steps.trivy.outcome == 'success' && '✅' || '⚠️' }} | ${TRIVY_VULNS} vulnerabilities |\n"
-      #     SECURITY_SECTION+="| Hadolint | ${{ steps.hadolint.outcome == 'success' && '✅' || '⚠️' }} | ${HADOLINT_ISSUES} issues |\n"
-      #     SECURITY_SECTION+="| Dockle | ${{ steps.dockle.outcome == 'success' && '✅' || '⚠️' }} | ${DOCKLE_ISSUES} warnings |\n"
-      #     SECURITY_SECTION+="| Container Structure | ${{ steps.container_test.outcome == 'success' && '✅' || '⚠️' }} | - |\n"
-          
-      #     # Update README.md
-      #     if grep -q "## Security Scan Results" README.md; then
-      #       # Replace existing section
-      #       sed -i "/## Security Scan Results/,/^##/c\\${SECURITY_SECTION}" README.md
-      #     else
-      #       # Add new section before the first ## or at the end if no ## exists
-      #       if grep -q "^##" README.md; then
-      #         sed -i "0,/^##/{/^##/i\\${SECURITY_SECTION}\\n}" README.md
-      #       else
-      #         echo -e "\n${SECURITY_SECTION}" >> README.md
-      #       fi
-      #     fi
-          
-      #     # Commit and push changes
-      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
-      #     git config --local user.name "github-actions[bot]"
-      #     git add README.md
-      #     git commit -m "docs: update security scan results [skip ci]"
-      #     git push 
