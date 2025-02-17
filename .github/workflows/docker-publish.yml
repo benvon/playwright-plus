@@ -21,11 +21,14 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # List of Playwright versions you want to build against.
+        # Update this list as needed.
+        playwright: [ "1.50.1", "1.49.1" ]
     permissions:
       contents: read
       packages: write
@@ -37,22 +40,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install the cosign tool except on PR
-      # https://github.com/sigstore/cosign-installer
+      # Install the cosign tool (except on pull requests)
       - name: Install cosign
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v3.8.0
         with:
-          cosign-release: 'v2.2.4' # optional
+          cosign-release: 'v2.2.4'  # optional
 
-      # Set up BuildKit Docker container builder to be able to build
-      # multi-platform images and export cache
-      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx for multi-platform builds and caching
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.9.0 
+        uses: docker/setup-buildx-action@v3.9.0
 
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
+      # Log into Docker registry (except on pull requests)
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3.3.0
@@ -61,37 +60,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5.6.1
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      # Sanitize the tag name by replacing disallowed characters
+      - name: Sanitize tag name
+        id: sanitize
+        run: |
+          safe_ref=$(echo "${{ github.ref_name }}" | sed 's#[/:\._@~^ #]#-#g')
+          echo "safe_ref=${safe_ref}" >> $GITHUB_OUTPUT
 
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
+      # Build and push Docker image for each Playwright version from the matrix.
+      # The resulting image is tagged as: <git-tag>-<playwright-version>
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v6.13.0
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          # Use the sanitized ref name from the previous step
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-pw${{ matrix.playwright }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          file: Dockerfile-pw-${{ matrix.playwright }}
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ matrix.playwright }}
 
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
+      # Sign the Docker image (except on pull requests)
       - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
+        if: github.event_name != 'pull_request'
         env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ steps.meta.outputs.tags }}
+          # Construct the tag manually as used above
+          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-${{ matrix.playwright }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
