@@ -66,9 +66,9 @@ jobs:
         uses: docker/build-push-action@v6.13.0
         with:
           context: .
-          file: Dockerfile.${{ matrix.playwright }}
+          file: ${{ matrix.dockerfile }}
           load: true  # Load the image locally instead of pushing
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -77,7 +77,7 @@ jobs:
         id: trivy
         continue-on-error: true
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
           format: 'json'
           output: 'trivy-results.json'
           ignore-unfixed: true
@@ -110,12 +110,12 @@ jobs:
         id: dockle
         continue-on-error: true
         run: |
-          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
 
       - name: Container Structure Test
         id: container_test
         continue-on-error: true
         uses: plexsystems/container-structure-test-action@v0.3.0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.playwright }}-test-security
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
           config: .container-structure-test.yaml
