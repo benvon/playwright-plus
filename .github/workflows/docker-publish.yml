@@ -64,7 +64,7 @@ jobs:
       - name: Sanitize tag name
         id: sanitize
         run: |
-          safe_ref=$(echo "${{ github.ref_name }}" | sed 's#[/:\._@~^ #]#-#g')
+          safe_ref=$(echo "${{ github.ref_name }}" | sed 's#[/:\_@~^ #]#-#g')
           echo "safe_ref=${safe_ref}" >> $GITHUB_OUTPUT
 
       # Build and push Docker image for each Playwright version from the matrix.
