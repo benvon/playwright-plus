@@ -8,6 +8,7 @@ ENV LC_ALL=C.UTF-8
 
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
+    default-jdk \
     jq=1.7.1-3build1 \
     && \
   rm -rf /var/lib/apt/lists/* 
@@ -24,5 +25,6 @@ WORKDIR /tmp
 RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
   npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps && \
   rm package.json
+
 
 

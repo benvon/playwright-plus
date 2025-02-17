@@ -38,6 +38,10 @@ commandTests:
   - name: 'PNPM Availability'
     command: 'pnpm'
     args: ['--version']
+  - name: 'Java availability'
+    command: 'java'
+    args: ['--version']
+    expectedOutput: ['OpenJDK Runtime Environment']
 
 metadataTest:
   envVars: []

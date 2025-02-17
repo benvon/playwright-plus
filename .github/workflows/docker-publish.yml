@@ -22,74 +22,62 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
+  generate-matrix:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # List of Playwright versions you want to build against.
-        # Update this list as needed.
-        playwright: [ "1.50.1", "1.49.1" ]
-    permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install the cosign tool (except on pull requests)
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3.8.0
-        with:
-          cosign-release: 'v2.2.4'  # optional
+      - name: Generate matrix from Dockerfiles
+        id: set-matrix
+        run: |
+          # Find all Dockerfile.* files in the repository root
+          files=$(find . -maxdepth 1 -name 'Dockerfile.*' -type f)
+          echo "Found Dockerfiles:"
+          echo "$files"
+          matrix="{\"include\":["
+          sep=""
+          for file in $files; do
+            # Extract the suffix after "Dockerfile."
+            tag=$(basename "$file")
+            tag=${tag#Dockerfile.}
+            # If no tag found, use a default value
+            [ -z "$tag" ] && tag="default"
+            # Remove any leading "./"
+            dockerfile=$(echo "$file" | sed 's|^\./||')
+            matrix="$matrix$sep{\"dockerfile\":\"$dockerfile\",\"image_tag\":\"$tag\"}"
+            sep=","
+          done
+          matrix="$matrix]}"
+          echo "Generated matrix: $matrix"
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-      # Set up Docker Buildx for multi-platform builds and caching
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.9.0
+  build-and-test:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Log into Docker registry (except on pull requests)
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3.3.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Sanitize the tag name by replacing disallowed characters
       - name: Sanitize tag name
         id: sanitize
         run: |
           safe_ref=$(echo "${{ github.ref_name }}" | sed 's#[/:\_@~^ #]#-#g')
           echo "safe_ref=${safe_ref}" >> $GITHUB_OUTPUT
 
-      # Build and push Docker image for each Playwright version from the matrix.
-      # The resulting image is tagged as: <git-tag>-<playwright-version>
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build Docker image
+        id: build
         uses: docker/build-push-action@v6.13.0
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          # Use the sanitized ref name from the previous step
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-pw${{ matrix.playwright }}
+          push: ${{ github.event_name != 'pull_request' }}  # Only push on non-PR events
+          file: ${{ matrix.dockerfile }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-${{ matrix.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: Dockerfile-pw-${{ matrix.playwright }}
           build-args: |
             PLAYWRIGHT_VERSION=${{ matrix.playwright }}
-
-      # Sign the Docker image (except on pull requests)
-      - name: Sign the published Docker image
-        if: github.event_name != 'pull_request'
-        env:
-          # Construct the tag manually as used above
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-${{ matrix.playwright }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
