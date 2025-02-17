@@ -60,6 +60,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Sanitize the tag name by replacing disallowed characters
+      - name: Sanitize tag name
+        id: sanitize
+        run: |
+          safe_ref=$(echo "${{ github.ref_name }}" | sed 's#[/:\._@~^ #]#-#g')
+          echo "safe_ref=${safe_ref}" >> $GITHUB_OUTPUT
+
       # Build and push Docker image for each Playwright version from the matrix.
       # The resulting image is tagged as: <git-tag>-<playwright-version>
       - name: Build and push Docker image
@@ -68,8 +75,8 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          # Use github.ref_name (the tag name without "refs/tags/") and matrix variable
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ matrix.playwright }}
+          # Use the sanitized ref name from the previous step
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-pw${{ matrix.playwright }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           file: Dockerfile-pw-${{ matrix.playwright }}
@@ -81,7 +88,7 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           # Construct the tag manually as used above
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ matrix.playwright }}
+          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sanitize.outputs.safe_ref }}-${{ matrix.playwright }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
