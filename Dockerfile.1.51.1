@@ -1,7 +1,7 @@
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.51.1-noble
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG PLAYWRIGHT_VERSION=1.49.1
+ARG PLAYWRIGHT_VERSION=1.51.1
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
@@ -12,7 +12,7 @@ RUN apt-get update && \
     default-jdk \
     jq=1.7.1-3build1 \
     && \
-  rm -rf /var/lib/apt/lists/* && \
+  rm -rf /var/lib/apt/lists/* && \ 
   npm install -g corepack@0.24.1 && \
     corepack enable pnpm && \
     corepack enable yarn
