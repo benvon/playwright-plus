@@ -12,9 +12,8 @@ RUN apt-get update && \
     default-jdk \
     jq=1.7.1-3build1 \
     && \
-  rm -rf /var/lib/apt/lists/* 
-
-RUN npm install -g corepack@0.24.1 && \
+  rm -rf /var/lib/apt/lists/* && \
+  npm install -g corepack@0.24.1 && \
     corepack enable pnpm && \
     corepack enable yarn
 
