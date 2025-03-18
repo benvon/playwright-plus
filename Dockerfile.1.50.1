@@ -17,15 +17,13 @@ RUN apt-get update && \
 RUN npm install -g corepack@0.24.1 && \
     corepack enable pnpm && \
     corepack enable yarn
-    
-COPY package.json /tmp/package.json
 
-WORKDIR /tmp
+COPY package.json /ms-playwright-agent/package.json
+
+WORKDIR /ms-playwright-agent
 
 # hadolint ignore=DL3016,SC2046
 RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
-  npm install @playwright/test@${PLAYWRIGHT_VERSION} && \
-  npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps && \
   rm package.json
 
-
+USER pwuser
