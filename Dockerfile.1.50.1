@@ -6,6 +6,7 @@ ARG PLAYWRIGHT_VERSION=1.50.1
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+# hadolint ignore=DL3008
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
     default-jdk \
@@ -21,7 +22,7 @@ COPY package.json /tmp/package.json
 
 WORKDIR /tmp
 
-# hadolint ignore=DL3016
+# hadolint ignore=DL3016,SC2046
 RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
   npm install @playwright/test@${PLAYWRIGHT_VERSION} && \
   npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps && \
