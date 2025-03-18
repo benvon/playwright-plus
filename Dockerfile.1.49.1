@@ -26,4 +26,5 @@ WORKDIR /ms-playwright-agent
 RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
   rm package.json
 
-USER pwuser
+# The ADO agent does not support non-root users
+# USER pwuser
