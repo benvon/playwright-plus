@@ -23,6 +23,7 @@ WORKDIR /tmp
 
 # hadolint ignore=DL3016
 RUN npm install -g $(jq -r '.dependencies | to_entries | map(.key + "@" + .value) | join(" ")' package.json) && \
+  npm install @playwright/test@${PLAYWRIGHT_VERSION} && \
   npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps && \
   rm package.json
 
