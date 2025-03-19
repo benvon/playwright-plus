@@ -11,13 +11,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3008
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
-    default-jdk \
-    jq=1.7.1-3build1 \
+    apt-transport-https=2.7.14build2 \
     ca-certificates=20240203 \
     curl=8.5.0-2ubuntu10.6 \
-    apt-transport-https=2.7.14build2 \
-    lsb-release=12.0-2 \
+    default-jdk \
     gnupg=2.4.4-2ubuntu17 \
+    jq=1.7.1-3build1 \
+    lsb-release=12.0-2 \
     && \
   # Install Azure CLI
   curl --proto "=https" --tlsv1.2 -sSf -L https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null && \
