@@ -42,6 +42,9 @@ commandTests:
     command: 'java'
     args: ['--version']
     expectedOutput: ['OpenJDK Runtime Environment']
+  - name: 'azure cli availability'
+    command: 'az'
+    args: [ 'version' ]
 
 metadataTest:
   envVars: []
