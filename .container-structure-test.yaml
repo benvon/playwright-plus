@@ -45,6 +45,9 @@ commandTests:
   - name: 'azure cli availability'
     command: 'az'
     args: [ 'version' ]
+  - name: 'allure cli availability'
+    command: 'allure'
+    args: [ '--version' ]
 
 metadataTest:
   envVars: []
