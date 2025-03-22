@@ -17,7 +17,7 @@ jobs:
   check-versions:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.check-versions.outputs.matrix }}
       has_new_versions: ${{ steps.check-versions.outputs.has_new_versions }}
     steps:
       - name: Log into registry
@@ -60,14 +60,14 @@ jobs:
           fi
           echo "has_new_versions=${HAS_NEW_VERSIONS}" >> $GITHUB_OUTPUT
 
-      - name: Set matrix
-        id: set-matrix
-        run: |
-          if [ "${{ steps.check-versions.outputs.has_new_versions }}" = "true" ]; then
-            echo "matrix=${{ steps.check-versions.outputs.matrix }}" >> $GITHUB_OUTPUT
-          else
-            echo 'matrix={"version":[]}' >> $GITHUB_OUTPUT
-          fi
+      # - name: Set matrix
+      #   id: set-matrix
+      #   run: |
+      #     if [ "${{ steps.check-versions.outputs.has_new_versions }}" = "true" ]; then
+      #       echo "matrix=${{ steps.check-versions.outputs.matrix }}" >> $GITHUB_OUTPUT
+      #     else
+      #       echo 'matrix={"version":[]}' >> $GITHUB_OUTPUT
+      #     fi
 
   security-scan:
     needs: check-versions
