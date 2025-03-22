@@ -1,55 +1,69 @@
 name: Docker Security Scan
 
 on:
+  schedule:
+    - cron: '0 0 * * 0'
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sundays
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  generate-matrix:
+  check-versions:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_new_versions: ${{ steps.check-versions.outputs.has_new_versions }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Log into registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate matrix from Dockerfiles
-        id: set-matrix
+      - name: Check for new versions
+        id: check-versions
         run: |
-          # Find all Dockerfile.* files in the repository root
-          files=$(find . -maxdepth 1 -name 'Dockerfile.*' -type f)
-          echo "Found Dockerfiles:"
-          echo "$files"
-          matrix="{\"include\":["
-          sep=""
-          for file in $files; do
-            # Extract the suffix after "Dockerfile."
-            tag=$(basename "$file")
-            tag=${tag#Dockerfile.}
-            # If no tag found, use a default value
-            [ -z "$tag" ] && tag="default"
-            # Remove any leading "./"
-            dockerfile=$(echo "$file" | sed 's|^\./||')
-            matrix="$matrix$sep{\"dockerfile\":\"$dockerfile\",\"image_tag\":\"$tag\"}"
-            sep=","
-          done
-          matrix="$matrix]}"
-          echo "Generated matrix: $matrix"
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          # Get latest 3 Playwright versions
+          VERSIONS=$(npm view playwright versions --json | jq -r '.[]' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 3)
+          
+          # Initialize arrays for new versions and tags to build
+          VERSIONS_TO_BUILD=()
+          HAS_NEW_VERSIONS="false"
+          
+          # Check each version against existing security scan tag
+          while IFS= read -r version; do
+            TAG="security-${version}"
+            if ! docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG} >/dev/null 2>&1; then
+              echo "New version for security scan detected: ${TAG}"
+              VERSIONS_TO_BUILD+=("${version}")
+              HAS_NEW_VERSIONS="true"
+            else
+              echo "Security scan tag already exists: ${TAG}"
+            fi
+          done <<< "$VERSIONS"
+          
+          # Output the versions as JSON array for matrix
+          if [ ${#VERSIONS_TO_BUILD[@]} -eq 0 ]; then
+            echo "No new versions to scan"
+            echo "matrix={\"version\":[]}" >> $GITHUB_OUTPUT
+          else
+            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R -s -c 'split("\n")[:-1]')
+            echo "matrix={\"version\":$VERSIONS_JSON}" >> $GITHUB_OUTPUT
+          fi
+          echo "has_new_versions=${HAS_NEW_VERSIONS}" >> $GITHUB_OUTPUT
 
   security-scan:
-    needs: generate-matrix
+    needs: check-versions
+    if: needs.check-versions.outputs.has_new_versions == 'true'
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.check-versions.outputs.matrix) }}
     permissions:
       contents: write
       packages: write
@@ -61,23 +75,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Generate test tag
+        id: test_tag
+        run: |
+          echo "tag=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:security-${{ matrix.version }}" >> $GITHUB_OUTPUT
+
       # Build image locally for scanning
       - name: Build Docker image
         uses: docker/build-push-action@v6.15.0
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
-          load: true  # Load the image locally instead of pushing
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
+          load: true
+          tags: ${{ steps.test_tag.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ matrix.version }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         id: trivy
         continue-on-error: true
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
+          image-ref: ${{ steps.test_tag.outputs.tag }}
           format: 'json'
           output: 'trivy-results.json'
           ignore-unfixed: true
@@ -110,12 +130,12 @@ jobs:
         id: dockle
         continue-on-error: true
         run: |
-          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
+          dockle --format json --timeout 600s --output dockle-results.json --ignore CIS-DI-0001 ${{ steps.test_tag.outputs.tag }}
 
       - name: Container Structure Test
         id: container_test
         continue-on-error: true
         uses: plexsystems/container-structure-test-action@v0.3.0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_tag }}-test-security
+          image: ${{ steps.test_tag.outputs.tag }}
           config: .container-structure-test.yaml
