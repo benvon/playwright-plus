@@ -1,13 +1,15 @@
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
 
+ARG PLAYWRIGHT_VERSION
 ARG DEBIAN_FRONTEND=noninteractive
-ARG PLAYWRIGHT_VERSION=1.49.1
 ARG AZURE_CLI_VERSION=2.70.0-1
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # hadolint ignore=DL3008
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
