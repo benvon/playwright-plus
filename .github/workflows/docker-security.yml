@@ -54,9 +54,9 @@ jobs:
             echo 'matrix={"version":["skip"]}' >> $GITHUB_OUTPUT
           else
             # Create a JSON array with properly quoted version strings
-            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R . | jq -s . | tr -d '\n')
-            echo "matrix={\"version\":$VERSIONS_JSON}"
+            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R . | jq -s . | jq -c .)
             echo "matrix={\"version\":$VERSIONS_JSON}" >> $GITHUB_OUTPUT
+            echo "matrix={\"version\":$VERSIONS_JSON}"
           fi
           echo "has_new_versions=${HAS_NEW_VERSIONS}" >> $GITHUB_OUTPUT
 
