@@ -140,3 +140,4 @@ dockle-results.*.json
 # Security tools and results
 .tools/
 .trivy-cache/
+.secrets

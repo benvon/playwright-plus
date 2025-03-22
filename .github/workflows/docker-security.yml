@@ -7,6 +7,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -16,7 +17,7 @@ jobs:
   check-versions:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.check-versions.outputs.matrix }}
       has_new_versions: ${{ steps.check-versions.outputs.has_new_versions }}
     steps:
       - name: Log into registry
@@ -51,22 +52,22 @@ jobs:
           # Output the versions as JSON array for matrix
           if [ ${#VERSIONS_TO_BUILD[@]} -eq 0 ]; then
             echo "No new versions to scan"
-            echo 'matrix=["skip"]' >> $GITHUB_OUTPUT
+            echo 'matrix={"version":[]}' >> $GITHUB_OUTPUT
           else
             # Create a JSON array with properly quoted version strings
-            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R . | jq -s . | jq -c .)
-            echo "matrix=$VERSIONS_JSON" >> $GITHUB_OUTPUT
+            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R -s -c 'split("\n")[:-1]')
+            echo "matrix={\"version\":$VERSIONS_JSON}" >> $GITHUB_OUTPUT
           fi
           echo "has_new_versions=${HAS_NEW_VERSIONS}" >> $GITHUB_OUTPUT
 
-      - name: Set matrix
-        id: set-matrix
-        run: |
-          if [ "${{ steps.check-versions.outputs.has_new_versions }}" = "true" ]; then
-            echo "matrix=${{ steps.check-versions.outputs.matrix }}" >> $GITHUB_OUTPUT
-          else
-            echo 'matrix=["skip"]' >> $GITHUB_OUTPUT
-          fi
+      # - name: Set matrix
+      #   id: set-matrix
+      #   run: |
+      #     if [ "${{ steps.check-versions.outputs.has_new_versions }}" = "true" ]; then
+      #       echo "matrix=${{ steps.check-versions.outputs.matrix }}" >> $GITHUB_OUTPUT
+      #     else
+      #       echo 'matrix={"version":[]}' >> $GITHUB_OUTPUT
+      #     fi
 
   security-scan:
     needs: check-versions
