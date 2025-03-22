@@ -53,7 +53,8 @@ jobs:
             echo "No new versions to scan"
             echo 'matrix={"version":["skip"]}' >> $GITHUB_OUTPUT
           else
-            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R -s -c 'split("\n")[:-1]')
+            # Create a JSON array with properly quoted version strings
+            VERSIONS_JSON=$(printf '%s\n' "${VERSIONS_TO_BUILD[@]}" | jq -R . | jq -s .)
             echo "matrix={\"version\":$VERSIONS_JSON}" >> $GITHUB_OUTPUT
           fi
           echo "has_new_versions=${HAS_NEW_VERSIONS}" >> $GITHUB_OUTPUT
@@ -64,7 +65,7 @@ jobs:
           if [ "${{ steps.check-versions.outputs.has_new_versions }}" = "true" ]; then
             echo "matrix=${{ steps.check-versions.outputs.matrix }}" >> $GITHUB_OUTPUT
           else
-            echo "matrix={\"version\":[\"skip\"]}" >> $GITHUB_OUTPUT
+            echo 'matrix={"version":["skip"]}' >> $GITHUB_OUTPUT
           fi
 
   security-scan:
