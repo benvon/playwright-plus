@@ -39,7 +39,7 @@ jobs:
         id: check-versions
         run: |
           # Get latest 3 Playwright versions
-          VERSIONS=$(npm view playwright versions --json | jq -r '.[]' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 3)
+          VERSIONS=$(npm view playwright versions --json | jq -r '.[]' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 20)
           
           # Initialize arrays for new versions and tags to build
           VERSIONS_TO_BUILD=()
