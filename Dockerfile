@@ -20,7 +20,7 @@ RUN apt-get update && \
     gnupg=2.4.4-2ubuntu17 \
     gpgsm=2.4.4-2ubuntu17 \
     jq=1.7.1-3build1 \
-    keyboxd=2.4.4-2ubuntu17.1 \
+    keyboxd=2.4.4-2ubuntu17.2 \
     lsb-release=12.0-2 \
     && \
   # Install Azure CLI
