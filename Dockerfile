@@ -18,7 +18,9 @@ RUN apt-get update && \
     curl=8.5.0-2ubuntu10.6 \
     default-jdk \
     gnupg=2.4.4-2ubuntu17 \
+    gpgsm=2.4.4-2ubuntu17 \
     jq=1.7.1-3build1 \
+    keyboxd=2.4.4-2ubuntu17.1 \
     lsb-release=12.0-2 \
     && \
   # Install Azure CLI
