@@ -12,8 +12,8 @@
     "@types/chai": "5.2.2",
     "@types/jest": "30.0.0",
     "@types/mocha": "10.0.10",
-    "@typescript-eslint/eslint-plugin": "8.35.1",
-    "@typescript-eslint/parser": "8.35.1",
+    "@typescript-eslint/eslint-plugin": "8.36.0",
+    "@typescript-eslint/parser": "8.36.0",
     "allure-commandline": "2.34.1",
     "allure-cucumberjs": "3.3.0",
     "allure-js-commons": "3.3.0",
@@ -21,11 +21,11 @@
     "chai": "5.2.0",
     "cross-env": "7.0.3",
     "dotenv-cli": "8.0.0",
-    "eslint": "9.30.0",
+    "eslint": "9.30.1",
     "eslint-config-prettier": "10.1.5",
     "eslint-plugin-prettier": "5.5.1",
     "http-server": "14.1.1",
-    "jest": "30.0.3",
+    "jest": "30.0.4",
     "localtunnel": "2.0.2",
     "mocha": "11.7.1",
     "pm2": "6.0.8",
@@ -33,6 +33,6 @@
     "source-map-support": "0.5.21",
     "ts-node": "10.9.2",
     "typescript": "5.8.3",
-    "zx": "8.6.0"
+    "zx": "8.6.1"
   }
 } 
