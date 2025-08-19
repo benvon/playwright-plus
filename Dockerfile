@@ -22,7 +22,7 @@ RUN apt-get update && \
     gpgsm=2.4.* \
     jq=1.7.* \
     keyboxd=2.4.* \
-    lsb-release=12.0.* \
+    lsb-release=12.* \
     && \
   # Install Azure CLI
   curl --proto "=https" --tlsv1.2 -sSf -L https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null && \
