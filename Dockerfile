@@ -15,14 +15,14 @@ RUN apt-get update && \
   apt-get install --no-install-recommends -y \
     apt-transport-https=2.7.14build2 \
     ca-certificates=20240203 \
-    curl=8.5.0-2ubuntu10.6 \
+    curl=8.5.* \
     default-jdk \
-    gnupg=2.4.4-2ubuntu17.3 \
-    gpgconf=2.4.4-2ubuntu17.3 \
-    gpgsm=2.4.4-2ubuntu17.3 \
-    jq=1.7.1-3build1 \
-    keyboxd=2.4.4-2ubuntu17.3 \
-    lsb-release=12.0-2 \
+    gnupg=2.4.* \
+    gpgconf=2.4.* \
+    gpgsm=2.4.* \
+    jq=1.7.* \
+    keyboxd=2.4.* \
+    lsb-release=12.* \
     && \
   # Install Azure CLI
   curl --proto "=https" --tlsv1.2 -sSf -L https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null && \
