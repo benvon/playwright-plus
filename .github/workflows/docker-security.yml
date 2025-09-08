@@ -124,7 +124,7 @@ jobs:
                 - library
 
       - name: Dockerfile lint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.2.0
         id: hadolint
         continue-on-error: true
         with:
