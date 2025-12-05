@@ -7,7 +7,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@cucumber/cucumber": "12.2.0",
+    "@cucumber/cucumber": "12.3.0",
     "@cucumber/pretty-formatter": "2.4.1",
     "@types/chai": "5.2.3",
     "@types/jest": "30.0.0",
@@ -28,8 +28,8 @@
     "jest": "30.2.0",
     "localtunnel": "2.0.2",
     "mocha": "11.7.5",
-    "pm2": "6.0.13",
-    "prettier": "3.6.2",
+    "pm2": "6.0.14",
+    "prettier": "3.7.3",
     "source-map-support": "0.5.21",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
