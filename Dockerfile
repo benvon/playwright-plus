@@ -14,7 +14,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
     apt-transport-https=2.7.14build2 \
-    ca-certificates=20240203 \
+    ca-certificates \
     curl=8.5.* \
     default-jdk \
     gnupg=2.4.* \
